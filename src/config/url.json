@@ -1,7 +1,8 @@
 {
-    "baseUrl": "http://localhost:8080",
+    "baseUrl": "http://ec2-43-201-181-196.ap-northeast-2.compute.amazonaws.com:8080",
     "uri" : {
-        "getSearchResult": "/search",
-        "getCase": "/case"
+        "comapre": "/comparefile",
+        "items": "/item/",
+        "allList": "/alllist"
     }
 }

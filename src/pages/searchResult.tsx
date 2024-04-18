@@ -1,110 +1,209 @@
-import { useSearchParams } from "react-router-dom";
-import { Suspense, useEffect, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { lazy } from "react";
 import url from '../config/url.json';
-
 import axios from "axios";
-import { Box } from "@mui/material";
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+
+
+class Case {
+  id: number;
+  title: string;
+  score: number;
+  link: string;
+
+  constructor(id: number, title: string, score: number, link: string) {
+    this.id = id;
+    this.title = title;
+    this.score = score;
+    this.link = link;
+  }
+}
+
+import * as React from 'react';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import IconButton from '@mui/material/IconButton';
+import Typography from '@mui/material/Typography';
+import Menu from '@mui/material/Menu';
+import MenuIcon from '@mui/icons-material/Menu';
+import Container from '@mui/material/Container';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import favicon from '../assets/logo.png';
+
+const pages = ['Products', 'Pricing', 'Blog'];
+
+function ResponsiveAppBar() {
+  const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
+
+  const handleOpenNavMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElNav(event.currentTarget);
+  };
+
+  const handleCloseNavMenu = () => {
+    setAnchorElNav(null);
+  };
+
+  return (
+    <AppBar position="fixed">
+      <Container maxWidth="xl">
+        <Toolbar disableGutters>
+          <Button onClick={() => {window.location.href = "/"} }><img src={favicon} style={{width: "30px", height: "30px", padding: 0}}></img></Button>
+          <Typography
+            variant="h6"
+            noWrap
+            component="a"
+            href="#app-bar-with-responsive-menu"
+            sx={{
+              mr: 2,
+              display: { xs: 'none', md: 'flex' },
+              fontFamily: 'Tenada',
+              fontWeight: 700,
+              letterSpacing: '.3rem',
+              color: 'inherit',
+              textDecoration: 'none',
+            }}
+          >
+            케이스매치
+          </Typography>
+
+          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+            <IconButton
+              size="large"
+              aria-label="account of current user"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              onClick={handleOpenNavMenu}
+              color="inherit"
+            >
+              <MenuIcon />
+            </IconButton>
+            <Menu
+              id="menu-appbar"
+              anchorEl={anchorElNav}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'left',
+              }}
+              open={Boolean(anchorElNav)}
+              onClose={handleCloseNavMenu}
+              sx={{
+                display: { xs: 'block', md: 'none' },
+              }}
+            >
+              {pages.map((page) => (
+                <MenuItem key={page} onClick={handleCloseNavMenu}>
+                  <Typography textAlign="center">{page}</Typography>
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
+        </Toolbar>
+      </Container>
+    </AppBar>
+  );
+}
+
 export default function searchResult () {
-  class Case {
-    id: number;
-    title: string;
-    caseNumber: string;
-    content: string;
-    link: string;
-
-
-    constructor(id:number, title: string, caseNumber: string, content: string, link: string) {
-      this.id = id;
-      this.title = title;
-      this.caseNumber = caseNumber;
-      this.content = content;
-      this.link = link;
-    }
-
-  }
-  class SearchResult extends Case{
-    sim: number;
-
-    constructor(id: number, title: string, caseNumber: string, content: string, sim: number, link: string) {
-      super(id, title, caseNumber, content, link);
-      this.sim = sim;
-    }
-    
-  }
 
   const columns: GridColDef[] = [
-    { field: 'title', headerName: 'Title', width: 150 },
-    { field: 'caseNumber', headerName: 'Case Number', width: 150 },
-    { field: 'content', headerName: 'Content', width: 150 },
-    { field: 'sim', headerName: 'Similarity', width: 150 },
-    { field: 'link', headerName: 'Link', width: 150 },
+    { field: 'title', headerName: 'Title', width: 500,
+      renderCell: (params) => (
+        <Link to={"/searchResult?target="+params.value}>{params.value}</Link>
+      )
+    },
+    { field: 'score', headerName: 'Similarity', width: 130 },
+    { field: 'link', headerName: 'Link', width: 100,
+      renderCell: (params) => (
+        <a href={params.value.toString()}>바로가기</a>
+
+      )
+    }
   ]
 
-  const [ searchParams, setSearchParams ] = useSearchParams();
-  const [ searchTarget, setSearchTarget ] = useState<Case>();
-  const [ searchResult, setSearchResult ] = useState<SearchResult[]>([]);
+  const [ searchParams ] = useSearchParams();
+  const [ searchResult, setSearchResult ] = useState<Case[]>();
+  const [ searchComplete, setSearchComplete ] = useState(false);
+  const [ search, setSearch ] = useState(searchParams.get("target"));
+
+  useEffect(() => {
+    setSearch(searchParams.get("target"));
+
+  }, [searchParams.get("target")]);
+  
+
+  useEffect(() => {
+    if (searchResult) {
+      setSearchComplete(true);
+    }
+  }, [searchResult])
 
   useEffect(() => {
     (async () => {
-      axios.get(url.baseUrl+url.uri.getCase, {params: { caseNumber: searchParams.get("target")}}
+      var formData = new FormData();
+      const target = searchParams.get("target");
+      if (target) {
+        formData.append("contents", target);
+      }
+
+      axios.post(
+        url.baseUrl+url.uri.comapre,
+        formData,
+        {headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }}
       ).then((res) => {
-        console.log(res.data);
+        var i = 0;
+        setSearchResult(res.data.responses[0].matches.map((c: any) => {
+          i++;
+          return new Case(i, c.title, c.score, c.link)
+        }));
       }).catch((e) => {
         console.log(e);
-        setSearchTarget(
-          new Case(
-            1,
-            "일제 강제동원 피해자들이 일본 기업을 상대로 불법행위로 인한 위자료 지급을 구하는 사건",
-            "2017다카 12345",
-            "일제 강제동원 피해자들이 일본 기업을 상대로 불법행위로 인한 위자료 지급을 구하는 사건",
-            "https://open.law.go.kr/LSO/openApi/guideResult.do?htmlName=precListGuide"
-          ));
       });
       
-      axios.get(url.baseUrl+url.uri.getSearchResult, {
-        params: { search: searchParams.get("target") }
-      }).then((res) => {
-        console.log(res.data);
-        setSearchResult(res.data);
-      }).catch((e) => {
-        console.log(e);
-        setSearchResult([
-          {
-            "id": 1,
-            "title": "일제 강제동원 피해자들이 일본 기업을 상대로 불법행위로 인한 위자료 지급을 구하는 사건",
-            "caseNumber": "2017다카 12345",
-            "content": "일제 강제동원 피해자들이 일본 기업을 상대로 불법행위로 인한 위자료 지급을 구하는 사건",
-            "sim": 0.9,
-            "link": "https://open.law.go.kr/LSO/openApi/guideResult.do?htmlName=precListGuide"
-          },
-
-        ]);
-    })})();
+      })();
 
   },[searchParams]);
 
+  useEffect(() => {
+    console.log(searchResult);
+  }, [searchResult])
+
+
 
   return(
-  <>
-    <Box sx={{bgcolor: "white", color: "black"}}>
-      <h1>{searchTarget?.title}</h1>
-      <h2>{searchTarget?.caseNumber}</h2>
-      <p>{searchTarget?.content}</p>
+  <Box sx={{width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems:"center"}}>
+    <ResponsiveAppBar />
+    <Box sx={{bgcolor: "white", color: "black", marginTop: 10, width: "300px", border: 1, borderRadius: 8, paddingBottom: 3, paddingLeft: 3, paddingRight: 3, marginBottom: 3}}>
+      <p>검색결과 :</p>
+      <form style={{display: "flex"}}>
+        <TextField 
+          value={search}
+          onChange={(e) => {setSearch(e.target.value)}}
+        />
+        <Button
+          variant="contained"
+          onClick={() => {window.location.href = "/searchResult?target="+search}}
+        >재검색</Button>
+      </form>
+      
     </Box>
 
-    {searchResult.map((result) => {
-      return (
-        <Box sx={{bgcolor: "white", color: "black"}}>
-          <DataGrid
-            rows={[result]}
-            columns={columns}
-
-            checkboxSelection />
-
-          </Box>
-      )
-    })}
-  </>) 
+    {searchComplete ? <Box sx={{bgcolor: "white", color: "black", border: 1, borderRadius: 8, width: 1000, padding: 4}}>
+      <DataGrid
+        rows={searchResult?.map((item) => ({...item }))}
+        columns={columns}
+        getRowId={(row) => row.id}
+        isRowSelectable={() => false}
+        checkboxSelection />
+    </Box> : <Box sx={{bgcolor: "white", color: "black"}}>Loading...</Box>}
+  </Box>) 
 }
